@@ -129,6 +129,7 @@ gboolean success_on_1146 = FALSE;
 gboolean no_backup_locks = FALSE;
 gboolean insert_ignore = FALSE;
 gboolean order_by_primary_key = FALSE;
+gboolean large_tables_first = FALSE;
 
 GList *innodb_tables = NULL;
 GMutex *innodb_tables_mutex = NULL;
@@ -205,6 +206,9 @@ static GOptionEntry entries[] = {
      NULL},
     {"order-by-primary", 0, 0, G_OPTION_ARG_NONE, &order_by_primary_key,
      "Sort the data by Primary Key or Unique key if no primary key exists",
+     NULL},
+    {"large-tables-first", 0, 0, G_OPTION_ARG_NONE, &large_tables_first,
+     "Dump large tables first to improve parallelism",
      NULL},
     {"triggers", 'G', 0, G_OPTION_ARG_NONE, &dump_triggers, "Dump triggers",
      NULL},
@@ -2665,7 +2669,14 @@ void dump_database_thread(MYSQL *conn, struct configuration *conf, struct databa
 
   char *query;
   mysql_select_db(conn, database->name);
-  if (detected_server == SERVER_TYPE_MYSQL ||
+  if(large_tables_first)
+    query =
+        g_strdup_printf("SELECT table_name, Engine, table_comment as Comment, "
+                        "Version,Row_format,table_rows,Data_length FROM "
+                        "information_schema.tables WHERE table_schema='%s'"
+                        "ORDER BY Data_length DESC",
+                        database->escaped);
+  else if (detected_server == SERVER_TYPE_MYSQL ||
       detected_server == SERVER_TYPE_TIDB)
     query = g_strdup("SHOW TABLE STATUS");
   else
