@@ -56,6 +56,7 @@ int build_empty_files = 0;
 extern gboolean use_single_column;
 extern guint64 min_integer_chunk_step_size;
 extern guint64 max_integer_chunk_step_size;
+extern gboolean large_tables_first;
 
 // Shared variables
 gint database_counter = 0;
@@ -1314,8 +1315,22 @@ void dump_database_thread(MYSQL *conn, struct configuration *conf, struct databa
     return;
   }
 
-  const char *query= "SHOW TABLE STATUS";
+  gchar *query;
+
+  if(large_tables_first) {
+    query =
+      g_strdup_printf("SELECT table_name, Engine, table_comment as Comment, "
+                      "Version, Row_format, table_rows as `Rows`, Data_length, table_collation as `Collation` FROM "
+                      "information_schema.tables WHERE table_schema='%s' "
+                      "ORDER BY Data_length",
+                      database->escaped);
+
+  } else {
+    query = g_strdup("SHOW TABLE STATUS");
+  }
+
   MYSQL_RES *result = m_store_result(conn, query,m_critical, "Error showing tables on: %s - Could not execute query", database->name);
+  g_free(query);
   if (!result)
     return;
 

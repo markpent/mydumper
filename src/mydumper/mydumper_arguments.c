@@ -33,6 +33,7 @@ extern guint64 max_integer_chunk_step_size;
 enum sync_thread_lock_mode sync_thread_lock_mode=AUTO;
 const gchar *compress_method=NULL;
 gboolean split_integer_tables=TRUE;
+gboolean large_tables_first = FALSE;
 const gchar *rows_file_extension=SQL;
 guint output_format=SQL_INSERT;
 gchar *output_directory_str = NULL;
@@ -193,6 +194,8 @@ static GOptionEntry extra_entries[] = {
       "It will lead to restoration issues if you have generated columns", NULL },
     {"order-by-primary", 0, 0, G_OPTION_ARG_NONE, &order_by_primary_key,
       "Sort the data by Primary Key or Unique key if no primary key exists", NULL},
+    {"large-tables-first", 0, 0, G_OPTION_ARG_NONE, &large_tables_first,
+     "Dump large tables first to improve parallelism", NULL},
     {"compact", 0, 0, G_OPTION_ARG_NONE, &compact, 
       "Give less verbose output. Disables header/footer constructs.", NULL},
     {"compress", 'c', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK , &arguments_callback,
